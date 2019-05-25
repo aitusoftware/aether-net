@@ -2,13 +2,18 @@ plugins {
     id 'net.minecrell.licenser' version '0.4.1' apply false
     id 'java'
     id 'application'
+    id 'com.github.johnrengelman.shadow' version '5.0.0' apply false
 }
 apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
 def aetherVersion = file('version.txt').text.trim()
 group = 'com.aitusoftware'
 version = aetherVersion
 
-defaultTasks 'build'
+defaultTasks 'clean', 'build', 'shadowJar'
+
+def sonatypeUsername = ''
+def sonatypePassword = ''
 
 ext {
     fullName = 'AetherNet'
@@ -106,10 +111,37 @@ uploadArchives {
     }
 }
 
+uploadShadow {
+    repositories {
+        mavenDeployer {
+            beforeDeployment {
+                MavenDeployment deployment -> signing.signPom(deployment)
+            }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
+            }
+
+            pom.project(projectPom)
+        }
+    }
+
+    mustRunAfter 'uploadArchives'
+}
+
+
 
 repositories {
     jcenter()
     mavenLocal()
+}
+
+configurations {
+    shadow
 }
 
 dependencies {
