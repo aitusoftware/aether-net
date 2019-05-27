@@ -12,9 +12,6 @@ version = aetherVersion
 
 defaultTasks 'clean', 'build', 'shadowJar'
 
-def sonatypeUsername = ''
-def sonatypePassword = ''
-
 ext {
     fullName = 'AetherNet'
     fullDescription = 'Aether-Net: Monitoring for Aeron'
@@ -96,7 +93,7 @@ javadoc {
 
 signing {
     required { gradle.taskGraph.hasTask('uploadArchives') }
-    sign configurations.archives
+    sign configurations.archives, configurations.shadow
 }
 
 uploadArchives {

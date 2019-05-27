@@ -4,8 +4,27 @@ A front-end for [Aether](https://github.com/aitusoftware/aether).
 
 ## Usage
 
-Start an [Aether Collector](https://github.com/aitusoftware/aether#collector), then create
-a configuration file:
+Start an [Aether Collector](https://github.com/aitusoftware/aether#collector) using the following
+configuration file:
+
+#### aether-collector.properties
+
+```
+aether.monitoringLocations=client:/path/to/client/media-driver;server:/path/to/server/media-driver
+aether.transport=AERON
+aether.mode=PUBLISHER
+aeron.dir=/path/to/aether-publisher-media-driver
+aether.transport.channel=aeron:udp?endpoint=localhost:18996
+```
+
+### Start the collector
+
+```
+$ java -cp /path/to/aether-net-all.jar \
+    com.aitusoftware.aether.Aether /path/to/aether-collector.properties
+```
+
+then create a server configuration file:
 
 #### aether-net.properties
 
@@ -14,7 +33,7 @@ aether.transport=AERON
 aether.mode=SUBSCRIBER
 # Describe the endpoint to receive data on
 # this should match the value supplied to the Aether collector
-aether.transport.channel=aeron:udp?endpoint=monitoring-host:18996
+aether.transport.channel=aeron:udp?endpoint=localhost:18996
 aether.net.http.port=8080
 ```
 
