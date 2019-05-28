@@ -82,8 +82,8 @@ function renderStreamData(allData) {
                     html += pubStatRow('Sender Position', publisher.senderPosition, '', false);
                     html += pubStatRow('Sender Limit', publisher.senderLimit, '', false);
                     html += pubStatRow('Queued', publisher.sendBacklog, backlogCls, false);
+                    html += pubStatRow('Remaining Buffer', publisher.remainingBuffer, '', false);
                 }
-                html += pubStatRow('Remaining Buffer', publisher.remainingBuffer, '', false);
                 html += pubStatRow('Back Pressure', publisher.backPressureEvents, bpeCls, true);
                 var subscriberSet = publisher.subscribers;
 
