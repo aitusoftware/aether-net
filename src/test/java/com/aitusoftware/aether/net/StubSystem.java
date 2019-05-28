@@ -39,6 +39,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
+import static io.aeron.CommonContext.IPC_CHANNEL;
+
 public final class StubSystem implements AutoCloseable
 {
     static final String CHANNEL_A = "aeron:udp?endpoint=localhost:54567";
@@ -92,13 +94,15 @@ public final class StubSystem implements AutoCloseable
             Publication pubA = clientAeron.addPublication(CHANNEL_A, STREAM_ID);
             Publication pubB = clientAeron.addPublication(CHANNEL_B, STREAM_ID);
             Publication pubC = clientAeron.addPublication(CHANNEL_C, STREAM_ID);
+            Publication ipcPub = clientAeron.addPublication(IPC_CHANNEL, STREAM_ID);
             Subscription subA_0 = serverAeron.addSubscription(CHANNEL_A, STREAM_ID);
             Subscription subA_1 = serverAeron.addSubscription(CHANNEL_A, STREAM_ID);
             Subscription subA_2 = serverAeron.addSubscription(CHANNEL_A, STREAM_ID);
             Subscription subB_0 = serverAeron.addSubscription(CHANNEL_B, STREAM_ID);
             Subscription subB_1 = serverAeron.addSubscription(CHANNEL_B, STREAM_ID);
             Subscription subC_0 = serverAeron.addSubscription(CHANNEL_C, STREAM_ID);
-            Subscription subC_1 = serverAeron.addSubscription(CHANNEL_C, STREAM_ID))
+            Subscription subC_1 = serverAeron.addSubscription(CHANNEL_C, STREAM_ID);
+            Subscription ipcSub = clientAeron.addSubscription(IPC_CHANNEL, STREAM_ID))
         {
             final Random random = ThreadLocalRandom.current();
             final DirectBuffer payload = new UnsafeBuffer(PAYLOAD);
@@ -116,6 +120,7 @@ public final class StubSystem implements AutoCloseable
                 if (rnd >= 2)
                 {
                     pubC.offer(payload, 0, PAYLOAD.length);
+                    ipcPub.offer(payload, 0, PAYLOAD.length);
                 }
                 if (rnd >= 3)
                 {
@@ -140,6 +145,7 @@ public final class StubSystem implements AutoCloseable
                 if (rnd >= 7)
                 {
                     subB_1.poll(assembler, random.nextInt(POLL_LIMIT));
+                    ipcSub.poll(assembler, random.nextInt(POLL_LIMIT));
                 }
                 if (rnd >= 8)
                 {

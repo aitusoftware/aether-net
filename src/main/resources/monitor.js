@@ -67,6 +67,7 @@ function renderStreamData(allData) {
     var streamData = allData['streams'];
     for (var channel in streamData) {
         for (var streamId in streamData[channel]) {
+            var isIpcChannel = channel.indexOf('aeron:ipc') >= 0;
             html += '<div class="channel row bottom-bar top-bar"><div class="stream col-md-12">' + channel + ' / ' + streamId + '</div></div>';
             var publisherSet = streamData[channel][streamId];
             for (var i = 0; i < publisherSet.length; i++) {
@@ -77,21 +78,31 @@ function renderStreamData(allData) {
                 html += pubStatRow('Session', publisher.sessionId, '', false);
                 html += pubStatRow('Publisher Position', publisher.publisherPosition, '', false);
                 html += pubStatRow('Publisher Limit', publisher.publisherLimit, '', false);
-                html += pubStatRow('Sender Position', publisher.senderPosition, '', false);
-                html += pubStatRow('Sender Limit', publisher.senderLimit, '', false);
-                html += pubStatRow('Back Pressure', publisher.backPressureEvents, bpeCls, false);
-                html += pubStatRow('Queued', publisher.sendBacklog, backlogCls, false);
-                html += pubStatRow('Remaining Buffer', publisher.remainingBuffer, '', true);
+                if (!isIpcChannel) {
+                    html += pubStatRow('Sender Position', publisher.senderPosition, '', false);
+                    html += pubStatRow('Sender Limit', publisher.senderLimit, '', false);
+                    html += pubStatRow('Queued', publisher.sendBacklog, backlogCls, false);
+                }
+                html += pubStatRow('Remaining Buffer', publisher.remainingBuffer, '', false);
+                html += pubStatRow('Back Pressure', publisher.backPressureEvents, bpeCls, true);
                 var subscriberSet = publisher.subscribers;
 
                 for (var j = 0; j < subscriberSet.length; j++) {
                     var subscriber = subscriberSet[j];
                     html += '<div class="row"><div class="col-md-12"></div></div>';
                     html += subStatRow('Context', subscriber.label, '', false);
-                    html += subStatRow('Receiver Position', subscriber.receiverPosition, '', false);
-                    html += subStatRow('Receiver HWM', subscriber.receiverHighWaterMark, '', true);
+                    if (!isIpcChannel) {
+                        html += subStatRow('Receiver Position', subscriber.receiverPosition, '', false);
+                        html += subStatRow('Receiver HWM', subscriber.receiverHighWaterMark, '', true);
+                    }
                     for (var reg in subscriber.subscriberPositions) {
-                        var available = (subscriber.receiverPosition - subscriber.subscriberPositions[reg]);
+                        var available = 0;
+                        if (isIpcChannel) {
+                            available = Math.max(0, publisher.publisherPosition - subscriber.subscriberPositions[reg]);
+                        } else {
+                            available = Math.max(0, subscriber.receiverPosition - subscriber.subscriberPositions[reg]);
+                        }
+
                         var cls = available > 0 ? 'sub-data-highlight' : '';
                         html += subStatRow('Subscriber Position', subscriber.subscriberPositions[reg], '', false);
                         html += subStatRow('Bytes Available', available, cls, true);

@@ -60,5 +60,5 @@ Aether-Net can be launched in local mode:
 $ java -cp /path/to/aether-net-all.jar \
     -Daether.monitoringLocations=A:/path/to/A/media-driver;B:/path/to/B/media-driver \
     -Daether.net.mode=LOCAL \
-    com.aitusoftware.aether.net.Server /path/to/aether-net.properties
+    com.aitusoftware.aether.net.Server
 ```

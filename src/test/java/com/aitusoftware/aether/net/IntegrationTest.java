@@ -17,8 +17,17 @@
  */
 package com.aitusoftware.aether.net;
 
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import com.aitusoftware.aether.Aether;
+import com.aitusoftware.aether.transport.CounterSnapshotPublisher;
+import com.google.gson.Gson;
+import io.aeron.Aeron;
+import io.aeron.driver.MediaDriver;
+import io.aeron.driver.ThreadingMode;
+import org.agrona.CloseHelper;
+import org.agrona.concurrent.SleepingMillisIdleStrategy;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -34,19 +43,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-import com.aitusoftware.aether.Aether;
-import com.aitusoftware.aether.transport.CounterSnapshotPublisher;
-import com.google.gson.Gson;
-
-import org.agrona.CloseHelper;
-import org.agrona.concurrent.SleepingMillisIdleStrategy;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import io.aeron.Aeron;
-import io.aeron.driver.MediaDriver;
-import io.aeron.driver.ThreadingMode;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class IntegrationTest
 {
