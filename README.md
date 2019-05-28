@@ -50,3 +50,15 @@ The server will listen on the specified port (default `8080`), stream data can
 be viewed at [http://localhost:8080/web](http://localhost:8080/web).
 
 ![Aether Net front-end](https://github.com/aitusoftware/aether-net/raw/master/doc/img/fe.png "Aether Net front-end")
+
+## For local development
+
+If all Aeron instances are available on the local machine (i.e. during application development),
+Aether-Net can be launched in local mode:
+
+```
+$ java -cp /path/to/aether-net-all.jar \
+    -Daether.monitoringLocations=A:/path/to/A/media-driver;B:/path/to/B/media-driver \
+    -Daether.net.mode=LOCAL \
+    com.aitusoftware.aether.net.Server /path/to/aether-net.properties
+```

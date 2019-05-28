@@ -65,7 +65,7 @@ class IntegrationTest
         driver = MediaDriver.launchEmbedded(new MediaDriver.Context()
             .threadingMode(ThreadingMode.SHARED)
             .sharedIdleStrategy(new SleepingMillisIdleStrategy(1L)));
-        server = Server.launchServer();
+        server = Server.launchServer(new Context().mode(Mode.NETWORK));
         snapshotPublisher = new CounterSnapshotPublisher(
             new CounterSnapshotPublisher.Context()
                 .aeronDirectoryName(driver.aeronDirectoryName()));

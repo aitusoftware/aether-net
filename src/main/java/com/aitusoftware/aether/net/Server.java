@@ -17,13 +17,7 @@
  */
 package com.aitusoftware.aether.net;
 
-import java.io.Closeable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-
+import com.aitusoftware.aether.Aether;
 import com.aitusoftware.aether.event.StreamKey;
 import com.aitusoftware.aether.event.SystemSnapshot;
 import com.aitusoftware.aether.model.ChannelSessionKey;
@@ -32,11 +26,6 @@ import com.aitusoftware.aether.net.model.PublisherData;
 import com.aitusoftware.aether.net.model.SubscriberData;
 import com.aitusoftware.aether.transport.CounterSnapshotSubscriber;
 import com.google.gson.Gson;
-
-import org.agrona.CloseHelper;
-import org.agrona.SystemUtil;
-import org.agrona.concurrent.SleepingMillisIdleStrategy;
-
 import io.aeron.driver.MediaDriver;
 import io.aeron.driver.ThreadingMode;
 import io.vertx.core.AbstractVerticle;
@@ -44,26 +33,39 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpServer;
+import org.agrona.CloseHelper;
+import org.agrona.SystemUtil;
+import org.agrona.concurrent.SleepingMillisIdleStrategy;
+
+import java.io.Closeable;
+import java.util.*;
 
 public final class Server extends AbstractVerticle
 {
     public static final int HTTP_PORT = Integer.getInteger("aether.net.http.port", 8080);
+    private final Context context;
     private MediaDriver mediaDriver;
     private CounterSnapshotSubscriber counterSnapshotSubscriber;
+    private Aether aether;
+
+    public Server(final Context context)
+    {
+        this.context = context;
+    }
 
     public static void main(final String[] args)
     {
         SystemUtil.loadPropertiesFiles(args);
-        launchServer();
+        launchServer(new Context());
     }
 
-    public static Closeable launchServer()
+    public static Closeable launchServer(final Context context)
     {
         final VertxOptions vertxOptions = new VertxOptions();
         final Vertx vertx = Vertx.vertx(vertxOptions);
         final Closeable closeable = vertx::close;
         final DeploymentOptions deploymentOptions = new DeploymentOptions();
-        vertx.deployVerticle(new Server(), deploymentOptions);
+        vertx.deployVerticle(new Server(context), deploymentOptions);
         return closeable;
     }
 
@@ -73,15 +75,33 @@ public final class Server extends AbstractVerticle
         final SystemSnapshot systemSnapshot = new SystemSnapshot();
         final HttpServer httpServer = vertx.createHttpServer();
         final Gson gson = new Gson();
-        mediaDriver = MediaDriver.launchEmbedded(new MediaDriver.Context()
-            .threadingMode(ThreadingMode.SHARED)
-            .sharedIdleStrategy(new SleepingMillisIdleStrategy(1L)));
-        counterSnapshotSubscriber = new CounterSnapshotSubscriber(new CounterSnapshotSubscriber.Context()
-            .aeronDirectoryName(mediaDriver.aeronDirectoryName())
-            .counterSnapshotListener(systemSnapshot));
+        final Mode mode = context.mode();
+        if (mode == Mode.LOCAL)
+        {
+            aether = Aether.launch(new Aether.Context()
+                .counterSnapshotListener(systemSnapshot)
+                .mode(Aether.Mode.LOCAL)
+                .transport(Aether.Transport.LOCAL));
+        }
+        else
+        {
+            mediaDriver = MediaDriver.launchEmbedded(new MediaDriver.Context()
+                .threadingMode(ThreadingMode.SHARED)
+                .sharedIdleStrategy(new SleepingMillisIdleStrategy(1L)));
+            counterSnapshotSubscriber = new CounterSnapshotSubscriber(new CounterSnapshotSubscriber.Context()
+                .aeronDirectoryName(mediaDriver.aeronDirectoryName())
+                .counterSnapshotListener(systemSnapshot));
+        }
         vertx.periodicStream(100).handler(i ->
         {
-            counterSnapshotSubscriber.doWork();
+            if (counterSnapshotSubscriber != null)
+            {
+                counterSnapshotSubscriber.doWork();
+            }
+            else if (aether != null)
+            {
+                aether.doWork();
+            }
         });
         httpServer.requestHandler(req ->
         {
@@ -157,7 +177,8 @@ public final class Server extends AbstractVerticle
     public void stop() throws Exception
     {
         super.stop();
-        CloseHelper.close(counterSnapshotSubscriber);
-        CloseHelper.close(mediaDriver);
+        CloseHelper.quietClose(aether);
+        CloseHelper.quietClose(counterSnapshotSubscriber);
+        CloseHelper.quietClose(mediaDriver);
     }
 }
