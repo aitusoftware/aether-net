@@ -18,12 +18,16 @@
 package com.aitusoftware.aether.net;
 
 import com.aitusoftware.aether.Aether;
+import com.aitusoftware.aether.aggregation.RateBucket;
+import com.aitusoftware.aether.aggregation.StreamRate;
+import com.aitusoftware.aether.event.RateMonitor;
 import com.aitusoftware.aether.event.StreamKey;
 import com.aitusoftware.aether.event.SystemSnapshot;
 import com.aitusoftware.aether.model.ChannelSessionKey;
 import com.aitusoftware.aether.model.SubscriberCounterSet;
 import com.aitusoftware.aether.net.model.PublisherData;
 import com.aitusoftware.aether.net.model.SubscriberData;
+import com.aitusoftware.aether.net.util.AggregateUpdateListener;
 import com.aitusoftware.aether.transport.CounterSnapshotSubscriber;
 import com.google.gson.Gson;
 import io.aeron.driver.MediaDriver;
@@ -39,6 +43,7 @@ import org.agrona.concurrent.SleepingMillisIdleStrategy;
 
 import java.io.Closeable;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public final class Server extends AbstractVerticle
 {
@@ -73,13 +78,19 @@ public final class Server extends AbstractVerticle
     public void start()
     {
         final SystemSnapshot systemSnapshot = new SystemSnapshot();
+        final RateMonitor rateMonitor = new RateMonitor(Arrays.asList(
+            new RateBucket(10, TimeUnit.SECONDS),
+            new RateBucket(1, TimeUnit.MINUTES)
+        ));
+        final AggregateUpdateListener listener = new AggregateUpdateListener(
+            systemSnapshot, rateMonitor);
         final HttpServer httpServer = vertx.createHttpServer();
         final Gson gson = new Gson();
         final Mode mode = context.mode();
         if (mode == Mode.LOCAL)
         {
             aether = Aether.launch(new Aether.Context()
-                .counterSnapshotListener(systemSnapshot)
+                .counterSnapshotListener(listener)
                 .mode(Aether.Mode.LOCAL)
                 .transport(Aether.Transport.LOCAL));
         }
@@ -90,7 +101,7 @@ public final class Server extends AbstractVerticle
                 .sharedIdleStrategy(new SleepingMillisIdleStrategy(1L)));
             counterSnapshotSubscriber = new CounterSnapshotSubscriber(new CounterSnapshotSubscriber.Context()
                 .aeronDirectoryName(mediaDriver.aeronDirectoryName())
-                .counterSnapshotListener(systemSnapshot));
+                .counterSnapshotListener(listener));
         }
         vertx.periodicStream(100).handler(i ->
         {
@@ -113,7 +124,7 @@ public final class Server extends AbstractVerticle
             {
                 final StringBuilder data = new StringBuilder();
 
-                serialiseModel(systemSnapshot, gson, data);
+                serialiseModel(systemSnapshot, rateMonitor, gson, data);
                 req.response().putHeader("content-type", "application/json").end(data.toString());
             }
             else
@@ -126,14 +137,17 @@ public final class Server extends AbstractVerticle
             {
                 final StringBuilder data = new StringBuilder();
 
-                serialiseModel(systemSnapshot, gson, data);
+                serialiseModel(systemSnapshot, rateMonitor, gson, data);
 
                 ws.writeTextMessage(data.toString());
             }))
             .listen(HTTP_PORT);
     }
 
-    private void serialiseModel(final SystemSnapshot systemSnapshot, final Gson gson, final StringBuilder data)
+    private void serialiseModel(
+        final SystemSnapshot systemSnapshot,
+        final RateMonitor rateMonitor,
+        final Gson gson, final StringBuilder data)
     {
         final Map<StreamKey, Map<ChannelSessionKey, Set<ChannelSessionKey>>> connectionsByStream =
             systemSnapshot.getConnectionsByStream();
@@ -161,6 +175,11 @@ public final class Server extends AbstractVerticle
                 final PublisherData publisherData =
                     new PublisherData(pubChannelSessionKey.getLabel(),
                     systemSnapshot.getPublisherCounterSet(pubChannelSessionKey));
+                final StreamRate streamRate = rateMonitor.publisherRates().get(pubChannelSessionKey);
+                streamRate.consumeRates((duration, durationUnit, bytesPerSecond) ->
+                {
+                    publisherData.addPublishRate(duration + "_" + durationUnit, bytesPerSecond);
+                });
                 subscriberList.forEach(publisherData::addSubscriberData);
                 streamMap.add(publisherData);
             }
@@ -169,6 +188,7 @@ public final class Server extends AbstractVerticle
         final Map<String, Object> allData = new HashMap<>();
         allData.put("streams", treeView);
         allData.put("systemCounters", systemSnapshot.getSystemCounters());
+
 
         gson.toJson(allData, data);
     }

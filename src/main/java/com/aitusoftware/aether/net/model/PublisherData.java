@@ -17,11 +17,9 @@
  */
 package com.aitusoftware.aether.net.model;
 
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
-
 import com.aitusoftware.aether.model.PublisherCounterSet;
+
+import java.util.*;
 
 public final class PublisherData implements Comparable<PublisherData>
 {
@@ -37,6 +35,7 @@ public final class PublisherData implements Comparable<PublisherData>
     private final long sendBacklog;
     private final long remainingBuffer;
     private final Set<SubscriberData> subscribers = new TreeSet<>();
+    private final Map<String, Long> publishRates = new HashMap<>();
 
     public PublisherData(final String label, final PublisherCounterSet counterSet)
     {
@@ -91,6 +90,11 @@ public final class PublisherData implements Comparable<PublisherData>
     public long sendBacklog()
     {
         return sendBacklog;
+    }
+
+    public void addPublishRate(final String key, final long value)
+    {
+        publishRates.put(key, value);
     }
 
     @Override

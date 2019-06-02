@@ -84,6 +84,9 @@ function renderStreamData(allData) {
                     html += pubStatRow('Queued', publisher.sendBacklog, backlogCls, false);
                     html += pubStatRow('Remaining Buffer', publisher.remainingBuffer, '', false);
                 }
+                for (var rate in publisher.publishRates) {
+                    html += pubStatRow('Rate ' + rate, publisher.publishRates[rate], '', false);
+                }
                 html += pubStatRow('Back Pressure', publisher.backPressureEvents, bpeCls, true);
                 var subscriberSet = publisher.subscribers;
 
