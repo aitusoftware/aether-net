@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Aitu Software Limited.
+ * Copyright 2019-2020 Aitu Software Limited.
  *
  * https://aitusoftware.com
  *
@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 
 public final class Server extends AbstractVerticle
 {
-    public static final int HTTP_PORT = Integer.getInteger("aether.net.http.port", 8080);
+    public static final int HTTP_PORT = Integer.getInteger("aether.net.http.port", 8090);
     private final Context context;
     private MediaDriver mediaDriver;
     private CounterSnapshotSubscriber counterSnapshotSubscriber;
