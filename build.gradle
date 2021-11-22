@@ -144,7 +144,7 @@ configurations {
 dependencies {
     compile 'io.vertx:vertx-core:3.7.0'
     compile 'com.aitusoftware:aether:0.2.1'
-    compile 'io.aeron:aeron-driver:1.28.2'
+    compile 'io.aeron:aeron-driver:1.36.0'
     compile 'io.aeron:aeron-client:1.28.2'
     compile 'com.google.code.gson:gson:2.8.5'
     testCompile group: 'com.google.truth', name: 'truth', version: '0.42'
